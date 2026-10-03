@@ -1,9 +1,9 @@
-import styles from "./wyszukiwarka.module.scss";
-
-export default function WyszukiwarkaPage() {
+const WyszukiwarkaPage = () => {
   return (
-    <main className={styles.pageShell}>
+    <main>
       wyszukiwarka
     </main>
   );
 }
+
+export default WyszukiwarkaPage;
