@@ -14,6 +14,9 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    sejm_api_url: str = "https://api.sejm.gov.pl/sejm"
+    sejm_term: int = 10
+
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.7-flash"
 
