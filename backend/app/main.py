@@ -1,11 +1,32 @@
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 import psycopg
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from qdrant_client import QdrantClient
 
+from app.api import sittings
 from app.config import settings
+from app.db.models import Base
+from app.db.session import engine
 
-app = FastAPI(title="Proste Fakty API")
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # No migrations yet: create missing tables on startup. Replace with alembic once the schema settles.
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception:
+        logger.exception("Could not create database tables")
+    yield
+
+
+app = FastAPI(title="Proste Fakty API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,6 +34,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(sittings.router)
 
 
 @app.get("/health")

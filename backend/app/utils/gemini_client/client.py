@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import timedelta
 from functools import lru_cache
 from typing import Any, TypeVar
 
@@ -39,6 +40,18 @@ def _is_retryable(exc: BaseException) -> bool:
     if isinstance(exc, errors.ServerError):
         return True
     return isinstance(exc, errors.ClientError) and exc.code == 429
+
+
+def retry_after(exc: BaseException) -> timedelta | None:
+    """How long Gemini asked us to wait (RetryInfo of a 429); None when the error does not say."""
+    if not isinstance(exc, errors.APIError) or not isinstance(exc.details, dict):
+        return None
+    for detail in exc.details.get("error", {}).get("details", []):
+        try:
+            return timedelta(seconds=float(detail["retryDelay"].removesuffix("s")))
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+    return None
 
 
 class GeminiClient:

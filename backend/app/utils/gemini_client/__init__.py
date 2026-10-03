@@ -4,6 +4,7 @@ from app.utils.gemini_client.client import (
     GeminiResponse,
     ToolCallRecord,
     get_gemini_client,
+    retry_after,
 )
 from app.utils.gemini_client.tools import GeminiTool
 
@@ -14,4 +15,5 @@ __all__ = [
     "GeminiTool",
     "ToolCallRecord",
     "get_gemini_client",
+    "retry_after",
 ]
