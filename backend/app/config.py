@@ -14,12 +14,19 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.7-flash"
+
     @property
     def database_url(self) -> str:
         return (
             f"postgresql://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
+
+    @property
+    def async_database_url(self) -> str:
+        return self.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
 
 settings = Settings()
