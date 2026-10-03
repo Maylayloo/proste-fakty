@@ -1,41 +1,37 @@
 import re
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.db.models import Act, Article
+from app.pipeline.act_keys import has_date, make_article_slug, normalize_article_number
 
-_SUPERSCRIPTS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
-_PREFIX = re.compile(r"^\s*(art\.?|artykuł|§)\s*", re.IGNORECASE)
-
-
-def normalize_article_number(raw: str) -> str:
-    """'Art. 178a' -> '178a', 'art. 26¹' / '26^1' / '26(1)' -> '26^1'."""
-    number = _PREFIX.sub("", raw).strip().lower().replace(" ", "")
-    if match := re.fullmatch(r"(\d+[a-z]*)([⁰¹²³⁴⁵⁶⁷⁸⁹]+)", number):
-        return f"{match[1]}^{match[2].translate(_SUPERSCRIPTS)}"
-    if match := re.fullmatch(r"(\d+[a-z]*)\((\d+)\)", number):
-        return f"{match[1]}^{match[2]}"
-    return number
+__all__ = ["find_article", "find_article_by_slug", "normalize_article_number"]
 
 
-async def find_article(session: AsyncSession, act_name: str, article_number: str) -> Article | None:
-    """Find an article by (partial) act name or ELI and article number.
+async def find_article_by_slug(session: AsyncSession, slug: str) -> Article | None:
+    query = select(Article).options(joinedload(Article.act)).where(Article.slug == slug)
+    return (await session.execute(query)).scalar_one_or_none()
 
-    When several acts match the name, the one with the shortest title wins, so
-    "kodeks pracy" prefers the code itself over acts that merely mention it.
+
+async def find_article(session: AsyncSession, act_key: str, article_number: str) -> Article | None:
+    """Look an article up by its slug, built from the act key and article number.
+
+    When the reference did not say the act's date (act_key without date), any date matches and the
+    newest act wins - still matched on the slug column only.
     """
-    pattern = f"%{act_name.strip()}%"
+    if has_date(act_key):
+        return await find_article_by_slug(session, make_article_slug(act_key, article_number))
+
+    article_part = make_article_slug("", article_number).removeprefix("_")  # "art_99b"
+    pattern = rf"^{re.escape(act_key)}_\d{{4}}_\d{{2}}_\d{{2}}_{re.escape(article_part)}$"
     query = (
         select(Article)
         .join(Article.act)
         .options(joinedload(Article.act))
-        .where(
-            Article.number == normalize_article_number(article_number),
-            or_(Act.eli == act_name.strip(), Act.title.ilike(pattern), Act.short_title.ilike(pattern)),
-        )
-        .order_by(func.length(Act.title))
+        .where(Article.slug.regexp_match(pattern))
+        .order_by(Act.act_date.desc().nulls_last())
         .limit(1)
     )
     return (await session.execute(query)).scalar_one_or_none()
