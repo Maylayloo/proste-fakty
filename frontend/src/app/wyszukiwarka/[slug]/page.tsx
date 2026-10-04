@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import cx from 'clsx';
 import { fetchArticle } from '@/app/api/articlesService';
 import styles from './details.module.scss';
 
@@ -50,16 +51,25 @@ const ArtykulPage = async ({ params }: Props) => {
             <ul className={styles.referencesList}>
               {article.references.map((reference) => (
                 <li key={reference.slug}>
-                  <Link href={`/artykuly/${reference.slug}`} className={styles.referenceLink}>
-                    <div className={styles.referenceContent}>
-                      <span className={styles.referenceIcon}>🔗</span>
-                      {reference.slug}
+                  {reference.available ? (
+                    <Link href={`/wyszukiwarka/${reference.slug}`} className={styles.referenceLink}>
+                      <div className={styles.referenceContent}>
+                        <span className={styles.referenceIcon}>🔗</span>
+                        {reference.slug}
+                      </div>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                      </svg>
+                    </Link>
+                  ) : (
+                    <div className={cx(styles.referenceLink, styles.referenceUnavailable)}>
+                      <div className={styles.referenceContent}>
+                        <span className={styles.referenceIcon}>🔗</span>
+                        {reference.slug}
+                      </div>
                     </div>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                      <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
-                  </Link>
+                  )}
                 </li>
               ))}
             </ul>

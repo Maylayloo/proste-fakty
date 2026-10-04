@@ -182,10 +182,22 @@ $color-border: rgba(#D4DDE2, 0.6);
   &:hover {
     border-color: $color-primary;
     background-color: $color-surface-light;
-    
+
     svg {
       color: $color-primary;
       transform: translateX(4px);
     }
+  }
+}
+
+// Referenced article is not in the database: same box, but not clickable
+.referenceUnavailable {
+  color: $color-muted;
+  font-weight: 400;
+  cursor: default;
+
+  &:hover {
+    border-color: $color-border;
+    background-color: $color-base;
   }
 }
