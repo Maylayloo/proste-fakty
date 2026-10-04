@@ -3,8 +3,6 @@
 Start with:  docker compose --profile celery up
 """
 
-import asyncio
-
 from celery import Celery
 from celery.schedules import crontab
 
@@ -26,7 +24,7 @@ celery_app.conf.update(
 
 @celery_app.task(name="pipeline.ingest_pdfs")
 def ingest_pdfs(force: bool = False) -> dict:
-    from app.db.session import engine
+    from app.db.session import engine, run_async
     from app.pipeline.run import run_pipeline
     from app.utils.gemini_client.client import GeminiClient
 
@@ -39,4 +37,4 @@ def ingest_pdfs(force: bool = False) -> dict:
             await engine.dispose()
         return {"discovered": report.discovered, "gold": report.to_gold, "failed": report.failed}
 
-    return asyncio.run(_run())
+    return run_async(_run())
