@@ -26,6 +26,22 @@ class SejmClient:
         """Number of votings on each sitting day of the term."""
         return await self._get(f"/term{term}/votings")
 
+    async def votings(self, term: int, sitting: int) -> list[dict[str, Any]]:
+        return await self._get(f"/term{term}/votings/{sitting}")
+
+    async def voting(self, term: int, sitting: int, number: int) -> dict[str, Any]:
+        """Single voting including the per-MP `votes` list."""
+        return await self._get(f"/term{term}/votings/{sitting}/{number}")
+
+    async def process(self, term: int, print_number: str) -> dict[str, Any] | None:
+        """Legislative process started by the given print, or None if the print does not start one."""
+        try:
+            return await self._get(f"/term{term}/processes/{print_number}")
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                return None
+            raise
+
     @retry(
         retry=retry_if_exception(_is_retryable),
         wait=wait_exponential(multiplier=1, min=1, max=10),

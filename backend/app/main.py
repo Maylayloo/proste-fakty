@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from qdrant_client import QdrantClient
 
-from app.api import articles, sittings
+from app.api import sittings
 from app.config import settings
 from app.db.models import Base
 from app.db.session import engine
@@ -36,7 +36,6 @@ app.add_middleware(
 )
 
 app.include_router(sittings.router)
-app.include_router(articles.router)
 
 
 @app.get("/health")
