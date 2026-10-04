@@ -1,0 +1,29 @@
+.card {
+  display: flex;
+  background-color: #D8D8D8;
+  border: 1px solid #518AB8;
+  padding: 1.25rem 2rem;
+  gap: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.15);
+}
+
+.leftSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.number {
+  font-size: 2rem;
+}
+
+.headingContainer {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: .5rem;
+
+}
