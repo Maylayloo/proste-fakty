@@ -1,7 +1,9 @@
+import enum
 from datetime import date, datetime
+from typing import Any
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -13,11 +15,15 @@ class Act(Base):
     __tablename__ = "acts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    eli: Mapped[str] = mapped_column(String(64), unique=True)  # e.g. "DU/2024/1539"
+    # Slug prefix of the act's articles, see app.pipeline.act_keys: "ustawa_o_podatku_akcyzowym_2008_12_06"
+    act_key: Mapped[str] = mapped_column(String(255), unique=True)
+    eli: Mapped[str | None] = mapped_column(String(64), unique=True)  # e.g. "DU/2024/1539"
+    act_type: Mapped[str | None] = mapped_column(String(64))  # "ustawa", "rozporządzenie", ...
+    act_date: Mapped[date | None] = mapped_column(Date)
     title: Mapped[str] = mapped_column(Text)  # full official title
     short_title: Mapped[str | None] = mapped_column(Text)  # e.g. "Kodeks karny"
 
-    articles: Mapped[list["Article"]] = relationship(back_populates="act")
+    articles: Mapped[list["Article"]] = relationship(back_populates="act", cascade="all, delete-orphan")
 
 
 class Article(Base):
@@ -27,7 +33,13 @@ class Article(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     act_id: Mapped[int] = mapped_column(ForeignKey("acts.id", ondelete="CASCADE"))
     number: Mapped[str] = mapped_column(String(32))
+    # The only lookup key for articles: "ustawa_o_podatku_akcyzowym_2008_12_06_art_99b"
+    slug: Mapped[str] = mapped_column(String(300), unique=True, index=True)
+    position: Mapped[int] = mapped_column(Integer)  # order within the act
     text: Mapped[str] = mapped_column(Text)
+    summary: Mapped[str | None] = mapped_column(Text)
+    # References found by the LLM, with resolution result: [{"act_key", "article", "resolved"}]
+    references: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
     act: Mapped[Act] = relationship(back_populates="articles")
 
@@ -62,3 +74,45 @@ class Sitting(Base):
         if self.dates[0] > today:
             return "planned"
         return "finished" if self.dates[-1] < today else "in_progress"
+
+
+class Layer(enum.StrEnum):
+    BRONZE = "bronze"  # PDF discovered, file metadata stored
+    SILVER = "silver"  # act + articles with summaries in Postgres
+    GOLD = "gold"  # summary chunks embedded in Qdrant
+
+
+class DocumentStatus(enum.StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    DONE = "done"
+    FAILED = "failed"
+
+
+class SourceDocument(Base):
+    """Tracks every PDF from the bronze folder and how far it got through the layers."""
+
+    __tablename__ = "source_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sha256: Mapped[str] = mapped_column(String(64), unique=True)  # same file content = same row
+    file_name: Mapped[str] = mapped_column(Text)
+    file_path: Mapped[str] = mapped_column(Text)
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    page_count: Mapped[int | None] = mapped_column(Integer)
+    pdf_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+
+    layer: Mapped[Layer] = mapped_column(Enum(Layer, native_enum=False), default=Layer.BRONZE)
+    status: Mapped[DocumentStatus] = mapped_column(
+        Enum(DocumentStatus, native_enum=False), default=DocumentStatus.PENDING
+    )
+    error: Mapped[str | None] = mapped_column(Text)
+
+    act_key: Mapped[str | None] = mapped_column(String(255))
+    article_count: Mapped[int | None] = mapped_column(Integer)
+    unresolved_references: Mapped[int | None] = mapped_column(Integer)
+    chunk_count: Mapped[int | None] = mapped_column(Integer)
+
+    discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    silver_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    gold_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

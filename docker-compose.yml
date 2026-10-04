@@ -35,6 +35,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/.venv # keep the container's venv, don't overwrite it with the host one
+      - hf_cache:/root/.cache/huggingface # embedding model (bge-m3) downloaded once
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,6 +53,37 @@ services:
     depends_on:
       - backend
 
+  # Celery is set up but not used yet: `docker compose --profile celery up`
+  redis:
+    image: redis:7-alpine
+    profiles: [celery]
+    ports:
+      - "6379:6379"
+
+  celery-worker:
+    build: ./backend
+    profiles: [celery]
+    env_file: .env.docker
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+      - hf_cache:/root/.cache/huggingface
+    depends_on: [redis, postgres, qdrant]
+
+  celery-beat:
+    build: ./backend
+    profiles: [celery]
+    env_file: .env.docker
+    command: celery -A app.celery_app beat --loglevel=info
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+    depends_on: [redis]
+
 volumes:
   postgres_data:
   qdrant_data:
+  hf_cache:

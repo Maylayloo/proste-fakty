@@ -1,4 +1,4 @@
-from app.db.articles import find_article
+from app.db.articles import find_article_by_slug
 from app.db.session import SessionFactory
 from app.utils.gemini_client.client import GeminiClient, GeminiResponse
 from app.utils.gemini_client.tools import make_article_lookup_tool
@@ -29,16 +29,16 @@ class ArticleNotFoundError(LookupError):
 async def summarize_article(
     client: GeminiClient,
     session_factory: SessionFactory,
-    act_name: str,
-    article_number: str,
+    slug: str,
 ) -> GeminiResponse:
+    """`slug` e.g. 'ustawa_o_podatku_akcyzowym_2008_12_06_art_99b' (see app.pipeline.act_keys)."""
     async with session_factory() as session:
-        article = await find_article(session, act_name, article_number)
+        article = await find_article_by_slug(session, slug)
     if article is None:
-        raise ArticleNotFoundError(f"art. {article_number} / {act_name}")
+        raise ArticleNotFoundError(slug)
 
     prompt = (
-        f"Akt: {article.act.title} (ELI: {article.act.eli})\n"
+        f"Akt: {article.act.title}\n"
         f"Artykuł: art. {article.number}\n\n"
         f"Treść artykułu:\n{article.text}\n\n"
         "Wyjaśnij ten artykuł zgodnie z instrukcjami."
