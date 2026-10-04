@@ -1,7 +1,11 @@
+import Hero from './components/Hero/Hero';
+import SittingsContainer from './components/SittingsContainer/SittingsContainer';
+
 const PosiedzeniaSejmuPage = () => {
   return (
-    <main className="page-shell">
-      Posiedzenia sejmu
+    <main>
+      <Hero/>
+      <SittingsContainer/> 
     </main>
   );
 }
