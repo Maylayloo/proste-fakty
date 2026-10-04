@@ -8,7 +8,7 @@ from typing import Any, TypeVar
 from google import genai
 from google.genai import errors, types
 from pydantic import BaseModel
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_random_exponential
 
 from app.config import settings
 from app.utils.gemini_client.tools.base import GeminiTool
@@ -127,6 +127,7 @@ class GeminiClient:
             temperature=temperature,
             response_mime_type="application/json",
             response_schema=schema,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
         response = await self._generate_content(model or self.model, prompt, config)
         if isinstance(response.parsed, schema):
@@ -137,8 +138,9 @@ class GeminiClient:
 
     @retry(
         retry=retry_if_exception(_is_retryable),
-        wait=wait_exponential(multiplier=1, min=2, max=30),
-        stop=stop_after_attempt(4),
+        # 503 "high demand" spikes can last minutes; randomised waits keep parallel calls from retrying in sync.
+        wait=wait_random_exponential(multiplier=2, max=60),
+        stop=stop_after_attempt(8),
         reraise=True,
     )
     async def _generate_content(

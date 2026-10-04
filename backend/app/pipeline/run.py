@@ -126,10 +126,12 @@ async def run_pipeline(
     pdf_dir: Path | str | None = None,
     *,
     force: bool = False,
+    only: list[str] | None = None,
     client: GeminiClient | None = None,
     sf: SessionFactory = session_factory,
 ) -> PipelineReport:
-    """Process every new or unfinished PDF in `pdf_dir`. `force=True` re-runs finished ones too."""
+    """Process every new or unfinished PDF in `pdf_dir`. `force=True` re-runs finished ones too;
+    `only` limits the run to these file names (others are still registered in bronze)."""
     pdf_dir = Path(pdf_dir or settings.pdf_dir)
     client = client or get_gemini_client()
     await init_db()
@@ -139,6 +141,8 @@ async def run_pipeline(
     report.discovered = len(documents)
 
     for doc in documents:
+        if only and doc.file_name not in only:
+            continue
         if doc.layer == Layer.GOLD and not force:
             continue
         await _set_status(sf, doc.id, DocumentStatus.PROCESSING)

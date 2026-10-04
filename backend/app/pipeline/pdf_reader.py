@@ -115,37 +115,7 @@ class ActPdfReader:
         if not lines:
             raise PdfParseError(f"{self.path.name}: no text layer (scanned PDF?)")
 
-        unit_pattern = _ARTICLE_START if any(_ARTICLE_START.match(line.strip()) for line in lines) else _PARAGRAPH_START
-
-        head: list[str] = []
-        articles: list[ArticleSegment] = []
-        chapters: list[str] = []
-        signature: list[str] = []
-        current_chapter: list[str] | None = None
-        quote_depth = 0
-
-        for line in lines:
-            stripped = line.strip()
-            outside_quotes = quote_depth == 0
-            quote_depth = max(0, quote_depth + sum(line.count(q) for q in _OPENING_QUOTES)
-                              - sum(line.count(q) for q in _CLOSING_QUOTES))
-
-            if signature or outside_quotes and articles and _SIGNATURE_START.match(stripped):
-                signature.append(line)
-            elif outside_quotes and (match := unit_pattern.match(stripped)):
-                chapter = " ".join(current_chapter) if current_chapter else (articles[-1].chapter if articles else None)
-                current_chapter = None
-                articles.append(ArticleSegment(number=match[1], position=len(articles), text=line, chapter=chapter))
-            elif outside_quotes and articles and _CHAPTER_START.match(stripped):
-                current_chapter = [line]
-                chapters.append(line)
-            elif current_chapter is not None:
-                current_chapter.append(line)  # chapter title lines
-                chapters[-1] = " ".join(current_chapter)
-            elif articles:
-                articles[-1].text += "\n" + line
-            else:
-                head.append(line)
+        head, articles, chapters, signature = split_units(lines)
 
         if not articles:
             raise PdfParseError(f"{self.path.name}: no articles (Art. N. / § N.) found")
@@ -162,6 +132,47 @@ class ActPdfReader:
         )
         _verify_nothing_skipped(parsed)
         return parsed
+
+
+def split_units(lines: list[str]) -> tuple[list[str], list[ArticleSegment], list[str], list[str]]:
+    """Split act lines into (head, articles, chapter headings, signature); every line goes to exactly one.
+
+    Units are "Art. N." (or "§ N." when the act has no articles). Markers inside quotes („Art. 5. ...”)
+    are new wording of an amended act and stay part of the surrounding article.
+    """
+    unit_pattern = _ARTICLE_START if any(_ARTICLE_START.match(line.strip()) for line in lines) else _PARAGRAPH_START
+
+    head: list[str] = []
+    articles: list[ArticleSegment] = []
+    chapters: list[str] = []
+    signature: list[str] = []
+    current_chapter: list[str] | None = None
+    quote_depth = 0
+
+    for line in lines:
+        stripped = line.strip()
+        outside_quotes = quote_depth == 0
+        quote_depth = max(0, quote_depth + sum(line.count(q) for q in _OPENING_QUOTES)
+                          - sum(line.count(q) for q in _CLOSING_QUOTES))
+
+        if signature or outside_quotes and articles and _SIGNATURE_START.match(stripped):
+            signature.append(line)
+        elif outside_quotes and (match := unit_pattern.match(stripped)):
+            chapter = " ".join(current_chapter) if current_chapter else (articles[-1].chapter if articles else None)
+            current_chapter = None
+            articles.append(ArticleSegment(number=match[1], position=len(articles), text=line, chapter=chapter))
+        elif outside_quotes and articles and _CHAPTER_START.match(stripped):
+            current_chapter = [line]
+            chapters.append(line)
+        elif current_chapter is not None:
+            current_chapter.append(line)  # chapter title lines
+            chapters[-1] = " ".join(current_chapter)
+        elif articles:
+            articles[-1].text += "\n" + line
+        else:
+            head.append(line)
+
+    return head, articles, chapters, signature
 
 
 def _parse_header(head: list[str], file_name: str) -> tuple[str, ActHeader]:
