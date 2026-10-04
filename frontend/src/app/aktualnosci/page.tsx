@@ -1,11 +1,12 @@
 import Hero from './components/Hero/Hero'
-import NewsCard from './components/NewsCard/NewsCard'
+import NewsContainer from './components/NewsContainer/NewsContainer';
 
 const AktualnosciPage = () => {
+
   return (
     <main>
       <Hero />
-      <NewsCard />
+      <NewsContainer /> 
     </main>
   )
 }
