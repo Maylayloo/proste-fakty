@@ -1,0 +1,76 @@
+@import '@/styles/variables.scss';
+
+$bg-alt: #D8D8D8;
+$border-blue: #518AB8;
+
+.container {
+  background-color: $background-primary;
+  color: $text-primary;
+  padding: 2rem;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.header {
+  background-color: $white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px $shadow;
+  margin-bottom: 3rem;
+
+  h1 {
+    font-size: 1.8rem;
+    margin: 1rem 0;
+    color: $text-primary;
+  }
+
+  .description {
+    color: $text-muted;
+    line-height: 1.6;
+    font-size: 1.05rem;
+    max-width: 900px;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.metaInfo {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+
+  .badge {
+    background-color: $action-primary;
+    color: $white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .dates, .turnout {
+    color: $border-blue;
+    font-weight: 500;
+  }
+}
+
+.stats {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  color: $text-muted;
+  font-size: 0.9rem;
+}
+
+.billsSection {
+  h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: $text-primary;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}

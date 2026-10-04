@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import styles from './Hero.module.scss';
 
 const heroImageUrl = "/images/sejm-hero-background.png";
@@ -25,10 +24,10 @@ const Hero = () => {
           <p>{messages.description}</p>
 
           <div className={styles.actions}>
-            <Link href="" className={styles.goToSittingsBtn}>
+            <a href="#first-sitting" className={styles.goToSittingsBtn}>
               <span>{messages.checkSittings}</span>
               <span aria-hidden="true">&rarr;</span>
-            </Link>
+            </a>
           </div>
         </div>
       </div>
@@ -40,7 +39,7 @@ export default Hero;
 
 const messages = {
   title: "Co się dzieje w sejmie?",
-  description: "Zobacz co posłowie robią, lorem ipsum 123 drugi akapit japidi heloł Zobacz co posłowie rob",
+  description: "Posiedzenia, ustawy i ważne rozmowy - zebrane w jednym miejscu, wyjaśnione prostym językiem.",
   checkSittings: "Sprawdź posiedzenia",
-  heroImageAlt: "Sejm assembly hall",
+  heroImageAlt: "Sala sejmowa",
 }
