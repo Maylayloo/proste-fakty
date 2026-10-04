@@ -19,12 +19,17 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.7-flash"
+    gemini_ocr_model: str = ""  # model for transcribing PDFs without a text layer; empty = gemini_model
 
     # Ingestion pipeline
     pdf_dir: str = "pdfs"
     embedding_model: str = "BAAI/bge-m3"  # multilingual (Polish), 8192-token context
     chunk_max_tokens: int = 1024
     llm_concurrency: int = 8
+
+    # POST /api/v1/articles/search: how many articles and the minimum cosine similarity to return
+    search_top_k: int = 3
+    search_min_score: float = 0.5
 
     celery_broker_url: str = "redis://localhost:6379/0"
 

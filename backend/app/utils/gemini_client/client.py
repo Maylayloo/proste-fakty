@@ -74,6 +74,7 @@ class GeminiClient:
         *,
         system_instruction: str | None = None,
         tools: Sequence[GeminiTool] = (),
+        attachments: Sequence[types.Part] = (),
         temperature: float | None = None,
         model: str | None = None,
     ) -> GeminiResponse:
@@ -84,7 +85,9 @@ class GeminiClient:
             tools=[types.Tool(function_declarations=[t.declaration() for t in tools])] if tools else None,
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
-        contents: list[types.Content] = [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])]
+        # Attachments (e.g. a PDF via types.Part.from_bytes) go before the instruction text.
+        user_parts = [*attachments, types.Part.from_text(text=prompt)]
+        contents: list[types.Content] = [types.Content(role="user", parts=user_parts)]
         records: list[ToolCallRecord] = []
 
         for round_no in range(self.max_tool_rounds + 1):

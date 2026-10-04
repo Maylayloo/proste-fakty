@@ -1,4 +1,4 @@
-"""Load a base act from its plain-text consolidated version (Kancelaria Sejmu / ISAP export) into Postgres.
+"""Load a base act from its consolidated version (Kancelaria Sejmu / ISAP export, .pdf or .txt) into Postgres.
 
 Articles only: no Gemini summaries and no embeddings. Acts processed by the main pipeline resolve their
 references against these articles (by slug), so load base acts before the acts that amend them.
@@ -18,27 +18,30 @@ from sqlalchemy import delete
 from app.db.models import Act, Article
 from app.db.session import SessionFactory, engine, init_db, run_async, session_factory
 from app.pipeline.act_keys import make_act_key, make_article_slug, normalize_article_number
-from app.pipeline.pdf_reader import POLISH_MONTHS, split_units
+from app.pipeline.pdf_reader import ISAP_EXPORT_DATE, ISAP_PAGE_HEADER, POLISH_MONTHS, ActPdfReader, split_units
 
 logger = logging.getLogger(__name__)
 
-_PAGE_HEADER = re.compile(r"^©Kancelaria Sejmu s\. \d+/\d+$")
-_EXPORT_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _MONTH_NAMES = {number: name for name, number in POLISH_MONTHS.items()}
 
 
-def clean_isap_lines(text: str) -> list[str]:
+def read_act_lines(path: Path) -> list[str]:
+    if path.suffix.lower() == ".pdf":
+        return ActPdfReader(path).lines()
+    return [line.rstrip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def clean_isap_lines(lines: list[str]) -> list[str]:
     """Drop the export's page headers ("©Kancelaria Sejmu s. 2/368" + export date) and the
     "Opracowano na podstawie: t.j. Dz. U. ..." side note. Everything else is kept."""
-    lines = [line.rstrip() for line in text.splitlines() if line.strip()]
     result: list[str] = []
     after_header = in_note = False
     for line in lines:
         stripped = line.strip()
-        if _PAGE_HEADER.match(stripped):
+        if ISAP_PAGE_HEADER.match(stripped):
             after_header = True
             continue
-        if after_header and _EXPORT_DATE.match(stripped):
+        if after_header and ISAP_EXPORT_DATE.match(stripped):
             after_header = False
             continue
         after_header = False
@@ -51,10 +54,25 @@ def clean_isap_lines(text: str) -> list[str]:
     return result
 
 
+# Older Dziennik Ustaw PDFs (e.g. 2003) extract Polish letters through a legacy font encoding:
+# "dzia∏alnoÊci po˝ytku publicznego" = "działalności pożytku publicznego".
+_LEGACY_DZU_CHARS = str.maketrans("∏¸à´ê˝çƒÊÂ", "łŁąęźżćńśŚ")
+_DZU_RUNNING_HEADER = re.compile(r"^Dziennik Ustaw( Nr \d+)? — \d+ — Poz\. (\d+)$")
+
+
+def clean_dzu_lines(lines: list[str]) -> list[str]:
+    """Fix the legacy encoding (only when the text shows it) and drop the Dziennik Ustaw running headers
+    ("Dziennik Ustaw Nr 96 — 6458 — Poz. 873") and the bare position number printed under the first page."""
+    if sum(line.count("∏") + line.count("˝") for line in lines) > 10:
+        lines = [line.translate(_LEGACY_DZU_CHARS) for line in lines]
+    positions = {m[2] for line in lines if (m := _DZU_RUNNING_HEADER.match(line.strip()))}
+    return [line for line in lines if not _DZU_RUNNING_HEADER.match(line.strip()) and line.strip() not in positions]
+
+
 async def load_base_act(
     path: Path, act_type: str, name: str, act_date: date, sf: SessionFactory = session_factory
 ) -> tuple[str, int]:
-    _, segments, _, _ = split_units(clean_isap_lines(path.read_text(encoding="utf-8")))
+    _, segments, _, _ = split_units(clean_dzu_lines(clean_isap_lines(read_act_lines(path))))
     act_key = make_act_key(act_type, name, act_date)
     title = f"{act_type.capitalize()} z dnia {act_date.day} {_MONTH_NAMES[act_date.month]} {act_date.year} r. {name}"
 

@@ -8,7 +8,7 @@ import pytest
 
 from app.pipeline import silver
 from app.pipeline.act_keys import make_act_key, make_article_slug
-from app.pipeline.pdf_reader import ActPdfReader, ArticleSegment
+from app.pipeline.pdf_reader import ActPdfReader, ArticleSegment, split_units
 from app.utils.gemini_client.tasks.act_ingestion import (
     ActContext,
     ArticleReferences,
@@ -159,3 +159,18 @@ def test_build_silver_on_sample_act(monkeypatch):
     # Same-act ref uses the already finished summary of art. 1 (depth 1).
     art2_prompt = next(p for p in client.summary_prompts if "Artykuł: art. 2" in p)
     assert "SUMMARY-1-part1" in art2_prompt and "Treść niedostępna w bazie" in art2_prompt
+
+
+def test_split_units_restores_superscripts_and_reads_isap_version_markers():
+    lines = [
+        "Art. 41. Rada.",
+        "Art. 411. Pierwszy z indeksem.",  # "Art. 41¹." with the superscript flattened by the PDF
+        "Art. 412. Drugi z indeksem.",
+        "Art. 41a. Litera.",
+        "[Art. 42. Brzmienie, które wygasa.]",
+        "<Art. 42a. Brzmienie przyszłe.>",
+        "Art. 91. Ostatni przed luką.",
+        "Art. 117. Po luce (art. 92-116 pominięte).",
+    ]
+    _, articles, _, _ = split_units(lines)
+    assert [a.number for a in articles] == ["41", "41^1", "41^2", "41a", "42", "42a", "91", "117"]

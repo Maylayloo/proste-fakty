@@ -1,5 +1,6 @@
 """Gemini steps of the PDF -> Qdrant ingestion pipeline (see app.pipeline.run)."""
 
+from google.genai import types
 from pydantic import BaseModel, Field
 
 from app.utils.gemini_client.client import GeminiClient
@@ -116,4 +117,29 @@ async def summarize_article_part(
     sections.append(f"{label}:\n{text}")
 
     response = await client.generate("\n\n".join(sections), system_instruction=SUMMARY_INSTRUCTION)
+    return response.text.strip()
+
+
+TRANSCRIBE_INSTRUCTION = """Przepisz dosłownie cały tekst aktu prawnego z załączonego PDF-a (PDF nie ma warstwy tekstowej).
+
+Zasady:
+- Przepisz każde słowo, liczbę i znak interpunkcyjny dokładnie tak jak w dokumencie. Niczego nie streszczaj,
+  nie poprawiaj, nie pomijaj i nie dodawaj.
+- Każdy artykuł zaczynaj od nowej linii od "Art. N." (np. "Art. 1."). Każdy ustęp ("1."), punkt ("1)"),
+  literę ("a)") i tiret zaczynaj od nowej linii.
+- Zachowaj polskie cudzysłowy „ i ” dokładnie tam, gdzie są w dokumencie (wyznaczają brzmienie zmienianych przepisów).
+- Pomiń tylko elementy strony: nagłówki i stopki z numerem strony, numer Dziennika Ustaw powtarzany na każdej stronie.
+- Przypisy dolne przepisz na końcu, każdy od nowej linii.
+- Zwróć sam czysty tekst, bez Markdownu, bez komentarzy.
+"""
+
+
+async def transcribe_pdf(client: GeminiClient, pdf_bytes: bytes, model: str | None = None) -> str:
+    """OCR for PDFs without a text layer: Gemini reads the PDF and returns its text verbatim."""
+    response = await client.generate(
+        "Przepisz tekst tego aktu prawnego.",
+        system_instruction=TRANSCRIBE_INSTRUCTION,
+        attachments=[types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf")],
+        model=model,
+    )
     return response.text.strip()

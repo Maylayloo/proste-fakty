@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -11,6 +12,7 @@ from app.api import sittings
 from app.config import settings
 from app.db.models import Base
 from app.db.session import engine
+from app.services import articles as articles_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             await conn.run_sync(Base.metadata.create_all)
     except Exception:
         logger.exception("Could not create database tables")
+    # Load the embedding model in the background so the first article search does not wait for it.
+    warm_up = asyncio.create_task(asyncio.to_thread(articles_service.warm_up))
     yield
+    warm_up.cancel()
 
 
 app = FastAPI(title="Proste Fakty API", lifespan=lifespan)

@@ -40,3 +40,6 @@ npm-debug.log*
 *.swp
 .DS_Store
 Thumbs.db
+
+# Local docker compose tweaks
+docker-compose.override.yml

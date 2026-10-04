@@ -41,16 +41,16 @@ services:
       qdrant:
         condition: service_started
 
-  frontend:
-    build: ./frontend
-    env_file: .env.docker
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
+  # frontend:
+  #   build: ./frontend
+  #   env_file: .env.docker
+  #   ports:
+  #     - "5173:5173"
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #   depends_on:
+  #     - backend
 
   # Celery is set up but not used yet: `docker compose --profile celery up`
   redis:

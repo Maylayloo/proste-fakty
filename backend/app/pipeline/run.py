@@ -20,6 +20,7 @@ from app.pipeline.gold import load_to_qdrant
 from app.pipeline.pdf_reader import ActPdfReader
 from app.pipeline.silver import build_silver
 from app.utils.gemini_client.client import GeminiClient, get_gemini_client
+from app.utils.gemini_client.tasks.act_ingestion import transcribe_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,13 @@ async def register_pdfs(pdf_dir: Path, sf: SessionFactory) -> list[SourceDocumen
 
 
 async def to_silver(doc: SourceDocument, client: GeminiClient, sf: SessionFactory) -> None:
-    parsed = ActPdfReader(doc.file_path).parse()
+    reader = ActPdfReader(doc.file_path)
+    if not reader.ocr_path.exists() and not reader.has_text_layer():
+        # Scanned / outlined-text PDF: transcribe once with Gemini and cache it next to the PDF.
+        logger.info("silver: %s has no text layer, transcribing with Gemini", doc.file_name)
+        text = await transcribe_pdf(client, reader.path.read_bytes(), model=settings.gemini_ocr_model or None)
+        reader.ocr_path.write_text(text + "\n", encoding="utf-8")
+    parsed = reader.parse()
     articles = await build_silver(parsed, client, sf, settings.llm_concurrency)
     header = parsed.header
 

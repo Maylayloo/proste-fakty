@@ -15,12 +15,19 @@ POLISH_MONTHS = {
 }  # fmt: skip
 
 _DATE_LINE = re.compile(r"^z dnia (\d{1,2}) (\w+) (\d{4}) r\.", re.IGNORECASE)
-_ARTICLE_START = re.compile(r"^Art\.\s*(\d+[a-z]*)\.(?:\s|$)")
+# Consolidated texts (ISAP) mark wording that is about to expire with [...] and future wording with <...>.
+_ARTICLE_START = re.compile(r"^[\[<]?Art\.\s*(\d+[a-z]*)\.(?:\s|$)")
 _PARAGRAPH_START = re.compile(r"^§\s*(\d+[a-z]*)\.(?:\s|$)")
 _CHAPTER_START = re.compile(r"^(Rozdział|DZIAŁ|Dział|Oddział)\s+\S+")
-_SIGNATURE_START = re.compile(r"^(MARSZAŁEK|PREZYDENT|PREZES RADY MINISTRÓW|MINISTER)\b")
+_SIGNATURE_START = re.compile(
+    r"^(MARSZAŁEK|PREZYDENT|PREZES RADY MINISTRÓW|MINISTER)\b"  # Sejm print: "MARSZAŁEK SEJMU"
+    r"|^(Prezydent Rzeczypospolitej Polskiej|Marszałek Sejmu|Prezes Rady Ministrów):"  # Dz. U.: "...: K. Nawrocki"
+)
+# Kancelaria Sejmu (ISAP) exports start every page with "©Kancelaria Sejmu   s. 2/40" + the export date.
+ISAP_PAGE_HEADER = re.compile(r"^©Kancelaria Sejmu\s+s\.\s*\d+/\d+$")
+ISAP_EXPORT_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _OPENING_QUOTES = "„"
-_CLOSING_QUOTES = "”“"
+_CLOSING_QUOTES = '”“"'  # plain " too: OCR transcriptions often close „..." with it
 
 
 class PdfParseError(ValueError):
@@ -100,13 +107,28 @@ class ActPdfReader:
             metadata={str(k).lstrip("/"): str(v) for k, v in raw_meta.items()},
         )
 
+    @property
+    def ocr_path(self) -> Path:
+        """Cached transcription for PDFs without a text layer (see app.pipeline.run.to_silver)."""
+        return self.path.with_suffix(".ocr.txt")
+
+    def has_text_layer(self) -> bool:
+        return any((page.extract_text() or "").strip() for page in self._reader.pages)
+
     def lines(self) -> list[str]:
+        if self.ocr_path.exists():
+            text = self.ocr_path.read_text(encoding="utf-8")
+            return [line.rstrip() for line in text.splitlines() if line.strip()]
         result: list[str] = []
         for page_no, page in enumerate(self._reader.pages, start=1):
             page_lines = [line.rstrip() for line in (page.extract_text() or "").splitlines()]
             page_lines = [line for line in page_lines if line.strip()]
             if page_no > 1 and page_lines and page_lines[0].strip() == str(page_no):
                 page_lines = page_lines[1:]
+            if page_lines and ISAP_PAGE_HEADER.match(page_lines[0].strip()):
+                page_lines = page_lines[1:]
+                if page_lines and ISAP_EXPORT_DATE.match(page_lines[0].strip()):
+                    page_lines = page_lines[1:]
             result.extend(page_lines)
         return result
 
@@ -132,6 +154,18 @@ class ActPdfReader:
         )
         _verify_nothing_skipped(parsed)
         return parsed
+
+
+def _restore_superscript(number: str, previous: str | None) -> str:
+    """PDF text loses superscripts: "Art. 41¹." comes out as "Art. 411.". A number that jumps ahead and starts with
+    the previous article's number is read as one: after 41 (or 41^1), "411" -> "41^1", "412" -> "41^2"."""
+    if previous is None or not number.isdigit():
+        return number
+    base = re.match(r"\d+", previous)[0]
+    suffix = number[len(base) :]
+    if number.startswith(base) and suffix and not suffix.startswith("0") and int(number) > int(base) + 1:
+        return f"{base}^{suffix}"
+    return number
 
 
 def split_units(lines: list[str]) -> tuple[list[str], list[ArticleSegment], list[str], list[str]]:
@@ -160,7 +194,8 @@ def split_units(lines: list[str]) -> tuple[list[str], list[ArticleSegment], list
         elif outside_quotes and (match := unit_pattern.match(stripped)):
             chapter = " ".join(current_chapter) if current_chapter else (articles[-1].chapter if articles else None)
             current_chapter = None
-            articles.append(ArticleSegment(number=match[1], position=len(articles), text=line, chapter=chapter))
+            number = _restore_superscript(match[1], articles[-1].number if articles else None)
+            articles.append(ArticleSegment(number=number, position=len(articles), text=line, chapter=chapter))
         elif outside_quotes and articles and _CHAPTER_START.match(stripped):
             current_chapter = [line]
             chapters.append(line)
