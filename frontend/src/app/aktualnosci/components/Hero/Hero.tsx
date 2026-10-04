@@ -26,7 +26,7 @@ const Hero = () => {
 
           <div className={styles.actions}>
             <Link href="" className={styles.goToSittingsBtn}>
-              <span>{messages.checkSittings}</span>
+              <span>{messages.primaryCta}</span>
               <span aria-hidden="true">&rarr;</span>
             </Link>
           </div>
@@ -39,8 +39,8 @@ const Hero = () => {
 export default Hero
 
 const messages = {
-  title: 'Co się ostatnio wydarzyło w sejmie?',
-  description: 'Zobacz co ostatnio wydarzyło się w sejmie lorem ipsum dolar ',
-  checkSittings: 'Sprawdź posiedzenia',
-  heroImageAlt: 'Sejm assembly hall',
+  title: 'Najważniejsze zmiany wokół Ciebie',
+  description: 'Przeglądaj najświeższe aktualności, wyjaśnienia, wnioski. Czy wpłynie to na Twoje życie?',
+  primaryCta: 'Przeglądaj aktualności',
+  heroImageAlt: 'Tło sekcji aktualności legislacyjnych',
 }
