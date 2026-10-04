@@ -7,7 +7,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Seed data (incl. Gemini-generated texts); postgres loads it only when the volume is empty
-      - ./db/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/01_seed.sql:ro
+      - ./db/seed_artykuly.sql:/docker-entrypoint-initdb.d/02_seed_artykuly.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s

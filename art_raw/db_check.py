@@ -1,10 +1,19 @@
+import os
 from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # =====================================================================
-# 1. KONFIGURACJA POŁĄCZENIA
+# 1. KONFIGURACJA POŁĄCZENIA (PostgreSQL via Docker)
 # =====================================================================
-engine = create_engine('sqlite:///prawo.db', echo=False)
+PG_USER = os.environ.get("POSTGRES_USER", "postgres")
+PG_PASS = os.environ.get("POSTGRES_PASSWORD", "postgres")
+PG_HOST = os.environ.get("POSTGRES_HOST", "localhost")
+PG_PORT = os.environ.get("POSTGRES_PORT", "5432")
+PG_DB   = os.environ.get("POSTGRES_DB", "proste_fakty")
+
+DATABASE_URL = f"postgresql://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+
+engine = create_engine(DATABASE_URL, echo=False)
 Base = declarative_base()
 SessionLocal = sessionmaker(bind=engine)
 

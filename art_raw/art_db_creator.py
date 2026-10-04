@@ -1,56 +1,75 @@
 import re
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Text
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 
 # =====================================================================
-# 1. FUNKCJA DO TWORZENIA UNIKALNEGO ID (SLUG)
+# 1. FUNKCJA DO TWORZENIA ELI (identyfikator ustawy)
 # =====================================================================
-def stworz_unikalne_id(tytul: str, data: str, numer_art: str) -> str:
+def stworz_eli(tytul: str, data: str) -> str:
     """
-    Zmienia tytuł, datę i numer w jednolity string, np.:
-    ustawa_o_podatku_akcyzowym_2008_12_06_art_2
+    Tworzy pseudo-ELI z tytułu i daty, np.:
+    DU/2008/ustawa_o_podatku_akcyzowym
     """
-    tekst = f"{tytul}_{data}_art_{numer_art}".lower()
+    tekst = tytul.lower()
 
     # Zamiana polskich znaków na odpowiedniki bez ogonków
     pl_znaki = {'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z'}
     for k, v in pl_znaki.items():
         tekst = tekst.replace(k, v)
 
-    # Usunięcie wszystkiego co nie jest literą lub cyfrą i zastąpienie znakiem '_'
-    tekst = re.sub(r'[^a-z0-9]+', '_', tekst)
-
-    return tekst.strip('_')
+    slug = re.sub(r'[^a-z0-9]+', '_', tekst).strip('_')
+    year = data.split('-')[0]
+    return f"DU/{year}/{slug}"
 
 
 # =====================================================================
-# 2. KONFIGURACJA BAZY DANYCH (SQLAlchemy)
+# 2. KONFIGURACJA BAZY DANYCH (PostgreSQL via Docker)
 # =====================================================================
-engine = create_engine('sqlite:///prawo.db', echo=False)
+PG_USER = os.environ.get("POSTGRES_USER", "postgres")
+PG_PASS = os.environ.get("POSTGRES_PASSWORD", "postgres")
+PG_HOST = os.environ.get("POSTGRES_HOST", "localhost")
+PG_PORT = os.environ.get("POSTGRES_PORT", "5432")
+PG_DB   = os.environ.get("POSTGRES_DB", "proste_fakty")
+
+DATABASE_URL = f"postgresql://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+
+engine = create_engine(DATABASE_URL, echo=False)
 Base = declarative_base()
 SessionLocal = sessionmaker(bind=engine)
 
 
-# Definicja modelu (tabeli w bazie)
-class Artykul(Base):
-    __tablename__ = 'artykuly'
+# =====================================================================
+# Modele odpowiadające tabelom backendu (acts + articles)
+# =====================================================================
+class Act(Base):
+    __tablename__ = 'acts'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    unikalny_id = Column(String, unique=True, nullable=False, index=True)
-    tytul_ustawy = Column(String, nullable=False)
-    data_ustawy = Column(String, nullable=False)
-    numer_artykulu = Column(String, nullable=False)
-    tresc = Column(Text, nullable=False)
+    eli = Column(String(64), unique=True, nullable=False)
+    title = Column(Text, nullable=False)
+    short_title = Column(Text, nullable=True)
+
+    articles = relationship("Article", back_populates="act")
+
+
+class Article(Base):
+    __tablename__ = 'articles'
+    __table_args__ = (UniqueConstraint('act_id', 'number'),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    act_id = Column(Integer, ForeignKey('acts.id', ondelete='CASCADE'), nullable=False)
+    number = Column(String(32), nullable=False)
+    text = Column(Text, nullable=False)
+
+    act = relationship("Act", back_populates="articles")
 
 
 def init_db():
-    """Inicjalizuje bazę: czyści stare dane i tworzy nową strukturę."""
-    # Czyszczenie przy każdym uruchomieniu (odpowiednik DROP TABLE)
-    Base.metadata.drop_all(engine)
-    # Tworzenie tabeli
-    Base.metadata.create_all(engine)
+    """Tworzy tabele acts i articles jeśli nie istnieją (nie rusza sittings)."""
+    Act.__table__.create(engine, checkfirst=True)
+    Article.__table__.create(engine, checkfirst=True)
 
 
 # =====================================================================
@@ -58,7 +77,7 @@ def init_db():
 # =====================================================================
 def parse_and_insert_law(file_path: str, law_title: str, law_date: str):
     if not os.path.exists(file_path):
-        print(f"⚠️ Brak pliku: {file_path}")
+        print(f"[WARN] Brak pliku: {file_path}")
         return
 
     with open(file_path, "r", encoding="utf-8") as file:
@@ -70,11 +89,18 @@ def parse_and_insert_law(file_path: str, law_title: str, law_date: str):
 
     number_pattern = r"Art\.\s+(\d+[a-z]*)\."
 
-    # Otwieramy sesję z bazą
     session = SessionLocal()
     inserted_count = 0
 
     try:
+        # Znajdź lub utwórz ustawę (Act)
+        eli = stworz_eli(law_title, law_date)
+        act = session.query(Act).filter_by(eli=eli).first()
+        if not act:
+            act = Act(eli=eli, title=law_title, short_title=None)
+            session.add(act)
+            session.flush()  # żeby uzyskać act.id
+
         for chunk in chunks:
             chunk = chunk.strip()
             if chunk.startswith("Art."):
@@ -82,25 +108,21 @@ def parse_and_insert_law(file_path: str, law_title: str, law_date: str):
                 if match:
                     art_number = match.group(1)  # np. "1", "137a"
 
-                    # Generujemy unikalny klucz
-                    uid = stworz_unikalne_id(law_title, law_date, art_number)
-
-                    # Sprawdzamy czy duplikat już istnieje, jeśli nie -> dodajemy
-                    istniejacy = session.query(Artykul).filter_by(unikalny_id=uid).first()
+                    # Sprawdzamy czy duplikat już istnieje
+                    istniejacy = session.query(Article).filter_by(
+                        act_id=act.id, number=art_number
+                    ).first()
                     if not istniejacy:
-                        nowy_artykul = Artykul(
-                            unikalny_id=uid,
-                            tytul_ustawy=law_title,
-                            data_ustawy=law_date,
-                            numer_artykulu=art_number,
-                            tresc=chunk
+                        nowy_artykul = Article(
+                            act_id=act.id,
+                            number=art_number,
+                            text=chunk
                         )
                         session.add(nowy_artykul)
                         inserted_count += 1
 
-        # Zapisujemy wszystko do bazy za jednym razem
         session.commit()
-        print(f"✅ Dodano {inserted_count} artykułów z: '{law_title}'")
+        print(f"[OK] Dodano {inserted_count} artykulow z: '{law_title}'")
 
     except Exception as e:
         session.rollback()
