@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     qdrant_url: str = "http://localhost:6333"
 
-    cors_origins: list[str] = ["http://localhost:5173"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
     sejm_api_url: str = "https://api.sejm.gov.pl/sejm"
     sejm_term: int = 10

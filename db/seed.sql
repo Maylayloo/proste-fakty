@@ -2,11 +2,7 @@
 -- PostgreSQL database dump
 --
 
-<<<<<<< Updated upstream
 \restrict 5rKkJAsKDlTSVUDJJWAaeMQtaqyN3zKdaMjNw8WtqRaYZSPhwzckQ0BIQhpacos
-=======
-\restrict J9deDMEljQck82UWadPhf3AfFeEDXhqaiA94sYdV5vIB9u9OK57ye9nrfPBDEcb
->>>>>>> Stashed changes
 
 -- Dumped from database version 17.11 (Debian 17.11-1.pgdg13+2)
 -- Dumped by pg_dump version 17.11 (Debian 17.11-1.pgdg13+2)
@@ -10962,9 +10958,5 @@ ALTER TABLE ONLY public.votings
 -- PostgreSQL database dump complete
 --
 
-<<<<<<< Updated upstream
 \unrestrict 5rKkJAsKDlTSVUDJJWAaeMQtaqyN3zKdaMjNw8WtqRaYZSPhwzckQ0BIQhpacos
-=======
-\unrestrict J9deDMEljQck82UWadPhf3AfFeEDXhqaiA94sYdV5vIB9u9OK57ye9nrfPBDEcb
->>>>>>> Stashed changes
 

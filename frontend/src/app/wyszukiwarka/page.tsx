@@ -1,7 +1,9 @@
+import SearchContainer from './components/SearchContainer/SearchContainer';
+
 const WyszukiwarkaPage = () => {
   return (
     <main>
-      wyszukiwarka
+      <SearchContainer/>
     </main>
   );
 }

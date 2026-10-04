@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from qdrant_client import QdrantClient
 
-from app.api import sittings
+from app.api import articles, sittings
 from app.config import settings
 from app.db.models import Base
 from app.db.session import engine
@@ -41,6 +41,7 @@ app.add_middleware(
 )
 
 app.include_router(sittings.router)
+app.include_router(articles.router)
 
 
 @app.get("/health")
@@ -61,3 +62,14 @@ def health() -> dict[str, str]:
         status["qdrant"] = f"error: {e}"
 
     return status
+
+
+if __name__ == "__main__":
+    # `uv run python -m app.main` - local dev server (Docker runs uvicorn directly, see docker-compose.yml).
+    import sys
+
+    import uvicorn
+
+    # psycopg's async mode cannot use Windows' default ProactorEventLoop.
+    loop = "asyncio:SelectorEventLoop" if sys.platform == "win32" else "auto"
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True, loop=loop)
