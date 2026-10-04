@@ -57,7 +57,7 @@ def main() -> None:
     parser.add_argument("query", nargs="?", help="question, e.g. 'akcyza na e-papierosy'; omit for interactive mode")
     parser.add_argument("-k", type=int, default=1, help="number of articles to return (default 1)")
     parser.add_argument("--act", help="only search one act, by act_key")
-    parser.add_argument("--min-score", type=float, default=0.0, help="hide results below this score (API uses 0.5)")
+    parser.add_argument("--min-score", type=float, default=0.0, help="hide results below this score (API uses 0.4)")
     parser.add_argument("--json", action="store_true", help="print JSON instead of text")
     args = parser.parse_args()
 

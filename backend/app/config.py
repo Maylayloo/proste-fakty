@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # POST /api/v1/articles/search: how many articles and the minimum cosine similarity to return
     search_top_k: int = 3
-    search_min_score: float = 0.5
+    search_min_score: float = 0.4
 
     celery_broker_url: str = "redis://localhost:6379/0"
 

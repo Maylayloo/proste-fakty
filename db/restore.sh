@@ -19,6 +19,9 @@ if [ "${1:-}" = "--postgres" ]; then
     echo "postgres <- db/seed.sql"
 fi
 
-curl -sf -X POST "$QDRANT_URL/collections/$COLLECTION/snapshots/upload?priority=snapshot&wait=true" \
-    -F "snapshot=@db/qdrant/$COLLECTION.snapshot" > /dev/null
-echo "qdrant   <- db/qdrant/$COLLECTION.snapshot"
+response=$(curl -sS -X POST "$QDRANT_URL/collections/$COLLECTION/snapshots/upload?priority=snapshot&wait=true" \
+    -F "snapshot=@db/qdrant/$COLLECTION.snapshot") || { echo "qdrant not reachable at $QDRANT_URL (is it running?)" >&2; exit 1; }
+case "$response" in
+    *'"status":"ok"'*) echo "qdrant   <- db/qdrant/$COLLECTION.snapshot" ;;
+    *) echo "qdrant restore failed: $response" >&2; exit 1 ;;
+esac
