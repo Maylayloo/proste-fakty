@@ -1,9 +1,13 @@
+import Hero from './components/Hero/Hero'
+import NewsCard from './components/NewsCard/NewsCard'
+
 const AktualnosciPage = () => {
   return (
     <main>
-     Aktualności
+      <Hero />
+      <NewsCard />
     </main>
-  );
-};
+  )
+}
 
-export default AktualnosciPage;
+export default AktualnosciPage

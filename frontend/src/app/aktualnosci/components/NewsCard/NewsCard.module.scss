@@ -1,0 +1,58 @@
+@use '@/styles/variables' as vars;
+
+$card-bg-primary: #d6e4ed;
+$status-accepted: #047857;
+$status-waiting: #92400e;
+$status-rejected: #be123c;
+
+.card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background-color: $card-bg-primary;
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: 5px 5px 10px 5px rgba(30, 30, 30, 0.08);
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+}
+
+.titleBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  .status {
+    display: flex;
+    gap: 4px;
+    background-color: #047857;
+    padding: 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: vars.$white;
+  }
+}
+
+.diffs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: full;
+  gap: 1rem;
+  .diffsCard {
+    width: 50%;
+    background-color: #b5d2e3;
+    box-shadow: 5px 5px 10px 5px rgba(30, 30, 30, 0.08);
+    border-radius: 12px;
+    padding: 0.5rem;
+    .diffTitle {
+      color: vars.$text-primary;
+    }
+    .diffDescription {
+      color: vars.$text-muted;
+    }
+  }
+}
