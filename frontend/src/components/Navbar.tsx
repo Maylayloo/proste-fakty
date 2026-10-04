@@ -1,18 +1,18 @@
-"use client";
+'use client'
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import styles from "./Navbar.module.scss";
-import cx from 'clsx';
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import styles from './Navbar.module.scss'
+import cx from 'clsx'
 
 const navItems = [
-  { href: "/aktualnosci", label: "Aktualności" },
-  { href: "/posiedzenia-sejmu", label: "Posiedzenia Sejmu" },
-  { href: "/wyszukiwarka", label: "Wyszukiwarka" },
-];
+  { href: '/aktualnosci', label: 'Aktualności' },
+  { href: '/posiedzenia-sejmu', label: 'Posiedzenia Sejmu' },
+  { href: '/wyszukiwarka', label: 'Wyszukiwarka' },
+]
 
 export function Navbar() {
-  const pathname = usePathname();
+  const pathname = usePathname()
 
   return (
     <header className={styles.navbar}>
@@ -23,7 +23,7 @@ export function Navbar() {
 
         <nav className={styles.navLinks} aria-label="Główna nawigacja">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname.startsWith(item.href)
 
             return (
               <Link
@@ -33,14 +33,14 @@ export function Navbar() {
               >
                 {item.label}
               </Link>
-            );
+            )
           })}
         </nav>
       </div>
     </header>
-  );
+  )
 }
 
 const messages = {
-    logo: "Proste Fakty",
-};
+  logo: 'Proste Fakty',
+}
