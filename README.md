@@ -1,18 +1,20 @@
 # Proste Fakty
 
-Inteligentna wyszukiwarka i tłumacz polskiego prawa na ludzki język.
+Inteligentna wyszukiwarka polskiego prawa oraz monitor polityki i prac Sejmu.
 
 ---
 
 ## Problem
 
-Polskie prawo jest napisane językiem, którego większość obywateli nie rozumie. Setki ustaw, tysiące artykułów, odesłania do innych przepisów — wszystko sformułowane żargonem prawniczym. Ludzie albo rezygnują z szukania odpowiedzi, albo płacą prawnikowi za wyjaśnienie jednego paragrafu.
+Polskie prawo i bieżąca polityka są często niezrozumiałe dla obywateli. Skomplikowany żargon, setki ustaw, tysiące artykułów i nieprzejrzyste prace Sejmu sprawiają, że trudno śledzić, co politycy faktycznie uchwalają i jak wpływa to na nasze życie.
 
 ## Rozwiązanie
 
 Proste Fakty to aplikacja webowa działająca w modelu wyszukaj i przetłumacz (Retrieve & Translate). Użytkownik zadaje pytanie zwykłym językiem, np. *ile wynosi akcyza na e-papierosy?*, a system znajduje odpowiednie artykuły w bazie i wyświetla je jako czytelne karty — przetłumaczone na prosty język.
 
-To nie jest chatbot. Aplikacja nie halucynuje i nie wymyśla odpowiedzi. Każda odpowiedź jest zakotwiczona w konkretnym artykule ustawy, który użytkownik może zweryfikować.
+Równolegle aplikacja monitoruje bieżące prace Sejmu i wydarzenia polityczne — analizuje posiedzenia, głosowania oraz projekty ustaw i przedstawia je w przystępny sposób, wyjaśniając kontekst zmian i ich realne konsekwencje.
+
+To nie jest chatbot. Aplikacja nie halucynuje i nie wymyśla odpowiedzi. Każda odpowiedź jest zakotwiczona w konkretnym artykule ustawy lub oficjalnych danych sejmowych, które użytkownik może zweryfikować.
 
 ---
 
