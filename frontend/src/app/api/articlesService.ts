@@ -38,7 +38,7 @@ export type ShapedArticle = {
   number: string;
   actTitle: string;
   actType: string | null;
-  actDate: string | null;
+  actDate: string | undefined;
   text: string;
   summary: string | null;
   references: {
@@ -60,7 +60,7 @@ const shapeArticle = (article: ArticleResponse): ShapedArticle => ({
   number: article.number,
   actTitle: article.act.title,
   actType: article.act.act_type,
-  actDate: article.act.act_date,
+  actDate: article.act.act_date ?? "",
   text: article.text,
   summary: article.summary,
   references: article.references.map((reference) => ({

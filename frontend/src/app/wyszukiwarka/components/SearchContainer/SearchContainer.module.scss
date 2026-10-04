@@ -1,24 +1,90 @@
+$color-primary: #5C7E8F;
+$color-surface: #D4DDE2;
+$color-surface-light: #F1F5F9;
+$color-muted: #94A3B8;
+$color-base: #FFFFFF;
+$color-text-main: #1E293B;
+$color-focus: rgba(#5C7E8F, 0.2);
+
 .section {
-  padding: 2rem 4rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.headerWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: center;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .header {
-  margin-bottom: 2rem;
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: $color-text-main;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $color-muted;
+  pointer-events: none; /* Zapobiega blokowaniu kliknięć w input pod ikoną */
 }
 
 .input {
   width: 100%;
-  margin-bottom: 2rem;
-  padding: 1.25rem 2rem;
-  background-color: #D8D8D8;
-  border: 1px solid #518AB8;
-  border-radius: 1rem;
-  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.15);
-  font: inherit;
+  padding: 1rem 1.5rem 1rem 3.25rem;
+  font-size: 1.125rem;
+  color: $color-text-main;
+  background-color: $color-base;
+  border: 2px solid $color-surface;
+  border-radius: 3rem; 
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+
+  &::placeholder {
+    color: $color-muted;
+  }
+
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 4px $color-focus;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: $color-surface-light;
+  }
+  
+  &::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 .cardsContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
 }
