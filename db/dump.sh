@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 # Refresh the shared seed data from the running containers:
-#   db/seed.sql                      - postgres: sittings (+ Gemini descriptions), acts, articles
+#   db/seed.sql                      - postgres: sittings (+ Gemini descriptions) with the votings, club results
+#                                      and bills (+ Gemini summaries) already pulled for them, acts, articles
 #                                      (+ Gemini summaries), source_documents (pipeline tracking)
 #   db/qdrant/act_articles.snapshot  - qdrant: the act_articles collection (embeddings)
 # Others load them with db/restore.sh.
@@ -11,7 +12,7 @@ QDRANT_URL="${QDRANT_URL:-http://localhost:6333}"
 COLLECTION=act_articles
 
 docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges \
-    -t sittings -t acts -t articles -t source_documents' > db/seed.sql.tmp
+    -t sittings -t bills -t votings -t voting_club_results -t acts -t articles -t source_documents' > db/seed.sql.tmp
 mv db/seed.sql.tmp db/seed.sql
 echo "postgres -> db/seed.sql"
 

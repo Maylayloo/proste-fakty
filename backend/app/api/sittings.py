@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.session import session_factory
-from app.schemas.sittings import Page, SittingListItem
+from app.schemas.sittings import Page, SittingDetail, SittingListItem
 from app.services import sittings as service
 from app.services.sejm_client import SejmClient, get_sejm_client
 
@@ -36,3 +36,18 @@ async def list_sittings(
         return await service.list_sittings(session, sejm, settings.sejm_term, page, page_size)
     except httpx.HTTPError as exc:
         raise SEJM_UNAVAILABLE from exc
+
+
+@router.get("/{number}", summary="One sitting: bills, results, summaries, club votes, turnout")
+async def get_sitting(
+    number: int,
+    session: SessionDep,
+    sejm: SejmDep,
+) -> SittingDetail:
+    try:
+        sitting = await service.get_sitting(session, sejm, settings.sejm_term, number)
+    except httpx.HTTPError as exc:
+        raise SEJM_UNAVAILABLE from exc
+    if sitting is None:
+        raise HTTPException(404, "Sitting not found")
+    return sitting
